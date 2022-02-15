@@ -42,3 +42,8 @@ async def read_user(user_id: int, db: Session = Depends(get_db)):
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
+
+
+@app.post("/users/", response_model=schemas.User)
+async def update_name(email: str, password: str, new_name: str):
+    pass

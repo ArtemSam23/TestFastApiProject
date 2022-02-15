@@ -24,7 +24,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     return db_user
 
 
-def update_name(db: Session, email: str, new_name: str):
+def update_name(db: Session, email: str, password: str, new_name: str):
     db_user = db.query(models.User).filter(models.User.email == email).first()
     db_user.name = new_name
     db.add(db_user)

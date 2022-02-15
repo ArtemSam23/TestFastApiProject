@@ -1,36 +1,59 @@
-# This is a basic workflow to help you get started with Actions
+name: FastAPI CI/CD
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Trigger the workflow on push
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    branches:
+      # Push events on develop branch
+      - develop
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# The Job defines a series of steps that execute on the same runner.
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+  CI:
+    # Define the runner used in the workflow
+    runs-on: ubuntu-latest
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # Check out repo so our workflow can access it
       - uses: actions/checkout@v2
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      # Setup Python
+      - name: Set up Python
+        # This action sets up a Python environment for use in actions
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      # Install Python Virtual ENV
+      - name: Install Python Virtual ENV
+        run: pip3 install virtualenv
+
+      # Setup Virtual ENV
+      - name:  Virtual ENV
+        uses: actions/cache@v2
+        id: cache-venv # name for referring later
+        with:
+          path: venv # what we cache: the Virtual ENV
+          # The cache key depends on requirements.txt
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-venv-
+
+      # Build a Virtual ENV, but only if it doesn't already exist
+      - name: Activate Virtual ENV
+        run: python -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+
+      - name: Create archive of dependencies
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          cd ./venv/lib/python3.9/site-packages
+          zip -r9 ../../../../app.zip .
+
+      - name: Add API files to Zip file
+        run: cd ./app && zip -g ../app.zip -r .
+
+      - name: Upload zip file artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: app
+          path: app.zip
